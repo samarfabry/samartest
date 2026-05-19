@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>deep focus</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0f11;
+  --surface: #16181c;
+  --surface2: #1e2127;
+  --border: #2a2d35;
+  --text: #e8e9ec;
+  --muted: #6b7280;
+  --accent: #f59e0b;
+  --accent2: #10b981;
+  --accent3: #6366f1;
+  --danger: #ef4444;
+  --radius: 12px;
+}
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 5rem;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.6;
+}
+
+.top-header {
+  width: 100%;
+  max-width: 680px;
+  padding: 2rem 1rem 0.5rem;
+}
+
+.logo {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+}
+.logo em { font-style: italic; color: var(--accent); }
+
+.nav {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+
+.nav-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.5rem 1rem 0.75rem;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.page { display: none; width: 100%; max-width: 680px; padding: 0 1rem; }
+.page.active { display: flex; flex-direction: column; gap: 1.5rem; animation: fadeUp 0.35s ease both; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+}
+
+.btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 1.2rem;
+  cursor: pointer;
+  transition: all 0.18s;
+  background: transparent;
+  color: var(--text);
+}
+.btn:hover { border-color: var(--muted); }
+
+.btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 500;
+}
+.btn-accent:hover { filter: brightness(1.1); }
+.btn-accent.paused { background: var(--accent2); border-color: var(--accent2); }
+
+.btn-sm {
+  font-size: 0.65rem;
+  padding: 0.3rem 0.75rem;
+  color: var(--muted);
+}
+.btn-sm:hover { color: var(--danger); border-color: var(--danger); }
+
+.input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.input:focus { border-color: var(--accent); }
+.input::placeholder { color: var(--muted); }
+
+/* POMODORO */
+.pomo-card { padding: 2rem; }
+
+.pomo-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.pomo-tab {
+  flex: 1;
+  padding: 0.45rem 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pomo-tab.active           { background: var(--accent);  border-color: var(--accent);  color: #000; font-weight:500; }
+.pomo-tab.short-tab.active { background: var(--accent2); border-color: var(--accent2); color: #000; }
+.pomo-tab.long-tab.active  { background: var(--accent3); border-color: var(--accent3); color: #fff; }
+
+/* Coffee mug */
+.mug-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0 0.75rem;
+  position: relative;
+}
+
+.steam {
+  display: flex;
+  gap: 10px;
+  height: 28px;
+  align-items: flex-end;
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+.steam.visible { opacity: 1; }
+
+.steam-line {
+  width: 3px;
+  height: 18px;
+  background: linear-gradient(to top, rgba(200,150,80,0.5), transparent);
+  border-radius: 99px;
+  animation: steamRise 2.2s ease-in-out infinite;
+}
+.steam-line:nth-child(1) { animation-delay: 0s;    height: 16px; }
+.steam-line:nth-child(2) { animation-delay: 0.55s; height: 24px; }
+.steam-line:nth-child(3) { animation-delay: 1.1s;  height: 18px; }
+
+@keyframes steamRise {
+  0%   { transform: translateY(0)    scaleX(1);   opacity: 0.8; }
+  100% { transform: translateY(-14px) scaleX(1.6); opacity: 0;   }
+}
+
+.mug-svg-container {
+  position: relative;
+  width: 240px;
+  height: 220px;
+}
+
+.mug-time-overlay {
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+.mug-time {
+  font-family: 'Fraunces', serif;
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-shadow: none;
+}
+
+.mug-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+
+.pomo-sessions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.session-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.3s;
+}
+.session-dot.done { background: var(--accent); }
+
+.pomo-controls {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+/* TASKS */
+.task-input-wrap {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-filters {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.65rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.filter-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn.active { border-color: var(--border); color: var(--text); }
+
+.task-list { list-style: none; max-height: 400px; overflow-y: auto; }
+.task-list::-webkit-scrollbar { width: 4px; }
+.task-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  animation: slideIn 0.22s ease both;
+}
+.task-item:last-child { border-bottom: none; }
+.task-item:hover { background: var(--surface2); }
+.task-item.done .task-text { text-decoration: line-through; color: var(--muted); }
+
+.task-check {
+  width: 20px; height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.task-check:hover { border-color: var(--accent); }
+.task-item.done .task-check { background: var(--accent2); border-color: var(--accent2); }
+.task-check svg { display: none; }
+.task-item.done .task-check svg { display: block; }
+
+.task-text { flex: 1; font-size: 0.82rem; line-height: 1.4; }
+
+.task-delete {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 0.2rem;
+}
+.task-item:hover .task-delete { opacity: 1; }
+.task-delete:hover { color: var(--danger); }
+
+.tasks-footer {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.progress-text { color: var(--accent2); }
+
+.empty-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+/* HABITS */
+.habits-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.range-btns { display: flex; gap: 0.25rem; }
+
+.range-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.range-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight:500; }
+
+.habit-list { display: flex; flex-direction: column; }
+
+.habit-item {
+  border-bottom: 1px solid var(--border);
+  animation: slideIn 0.22s ease both;
+}
+.habit-item:last-child { border-bottom: none; }
+
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.5rem 0.4rem;
+}
+
+.habit-color-bar {
+  width: 3px;
+  height: 28px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.habit-name {
+  flex: 1;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.habit-desc {
+  font-size: 0.68rem;
+  color: var(--muted);
+  padding: 0 1.5rem 0.35rem 3.75rem;
+}
+
+.habit-streak {
+  font-size: 0.65rem;
+  color: var(--muted);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.15rem 0.55rem;
+  white-space: nowrap;
+}
+
+.habit-del {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  padding: 0.1rem 0.3rem;
+}
+.habit-item:hover .habit-del { opacity: 1; }
+.habit-del:hover { color: var(--danger); }
+
+.habit-grid-wrap {
+  padding: 0.35rem 1.5rem 1rem;
+  overflow-x: auto;
+}
+
+.habit-grid { display: flex; flex-direction: column; gap: 3px; }
+
+.habit-grid-row {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.habit-day-label {
+  font-size: 0.56rem;
+  color: var(--muted);
+  width: 1.8rem;
+  text-align: right;
+  flex-shrink: 0;
+  padding-right: 5px;
+}
+
+.grid-days { display: flex; gap: 3px; }
+
+.habit-cell {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  position: relative;
+  user-select: none;
+}
+.habit-cell:hover { border-color: var(--muted); transform: scale(1.1); }
+
+.habit-cell .day-num {
+  font-size: 0.58rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.habit-cell.checked .day-num { display: none; }
+.habit-cell.today { border-width: 1.5px !important; }
+
+.habit-summary {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transform: translateY(20px);
+  transition: transform 0.25s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+.modal-overlay.show .modal { transform: translateY(0); }
+
+.modal-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+}
+
+.modal-row { display: flex; flex-direction: column; gap: 0.4rem; }
+.modal-label { font-size: 0.67rem; color: var(--muted); letter-spacing: 0.07em; text-transform: uppercase; }
+.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
+
+.color-picker-wrap { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.color-dot {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.color-dot:hover { transform: scale(1.15); }
+.color-dot.selected { outline-color: var(--text); }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  z-index: 1000;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* HISTORY */
+.cycle-card {
+  border-bottom: 1px solid var(--border);
+  padding: 1.25rem 1.5rem;
+}
+.cycle-card:last-child { border-bottom: none; }
+.cycle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.cycle-title {
+  font-family: "Fraunces", serif;
+  font-weight: 300;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+.cycle-dates {
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.cycle-habits { display: flex; flex-direction: column; gap: 0.5rem; }
+.cycle-habit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.cycle-habit-name {
+  flex: 1;
+  font-size: 0.78rem;
+}
+.cycle-habit-bar-wrap {
+  flex: 2;
+  height: 6px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cycle-habit-bar {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+.cycle-habit-pct {
+  font-size: 0.65rem;
+  color: var(--muted);
+  width: 2.5rem;
+  text-align: right;
+}
+.cycle-locked-badge {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 0.15rem 0.6rem;
+  color: var(--muted);
+}
+.cycle-days-left {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+
+/* GOALS */
+.goal-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1.5rem 0;
+}
+.goal-tab {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.goal-tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight:500; }
+.goal-type-desc {
+  font-size: 0.65rem;
+  color: var(--muted);
+  padding: 0.4rem 1.5rem 0.75rem;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.goal-modal-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+.goal-modal-tab {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.goal-modal-tab.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight:500; }
+
+.goal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+  animation: slideIn 0.22s ease both;
+}
+.goal-item:last-child { border-bottom: none; }
+.goal-item:hover { background: var(--surface2); }
+.goal-item.done .goal-text { text-decoration: line-through; color: var(--muted); }
+.goal-item.done .goal-notes { text-decoration: line-through; }
+
+.goal-check {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.2s;
+}
+.goal-check:hover { border-color: var(--accent); }
+.goal-item.done .goal-check { background: var(--accent2); border-color: var(--accent2); }
+.goal-check svg { display: none; }
+.goal-item.done .goal-check svg { display: block; }
+
+.goal-body { flex: 1; }
+.goal-text { font-size: 0.82rem; line-height: 1.4; }
+.goal-notes { font-size: 0.68rem; color: var(--muted); margin-top: 0.2rem; }
+.goal-delete {
+  background: transparent; border: none; color: var(--muted);
+  cursor: pointer; font-size: 1rem; opacity: 0; transition: opacity 0.2s, color 0.2s;
+  padding: 0.1rem; flex-shrink: 0;
+}
+.goal-item:hover .goal-delete { opacity: 1; }
+.goal-delete:hover { color: var(--danger); }
+
+/* HABITS scroll arrows */
+.habits-scroll-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.scroll-arrow {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.scroll-arrow:hover { color: var(--text); border-color: var(--muted); }
+.scroll-arrow:disabled { opacity: 0.25; cursor: default; }
+
+/* BOOST */
+.boost-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-top: 1px solid var(--border);
+}
+.boost-tile {
+  background: var(--surface);
+  padding: 1.25rem 1.25rem 1.1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.boost-tile:hover { background: var(--surface2); }
+.boost-tile.active { background: var(--surface2); }
+.boost-icon {
+  font-size: 1.1rem;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.1rem;
+}
+.boost-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.boost-sub {
+  font-size: 0.65rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.boost-panel {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border);
+  animation: fadeUp 0.25s ease both;
+}
+.boost-panel-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+.boost-quote-text {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+.boost-quote-author {
+  font-size: 0.68rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+.mood-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.mood-btn {
+  font-size: 1.4rem;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.mood-btn:hover { transform: scale(1.15); }
+.mood-btn.selected { border-color: var(--accent); background: rgba(245,158,11,0.12); }
+.energy-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  margin: 0.5rem 0 0.25rem;
+}
+.energy-val {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+.win-inputs { display: flex; flex-direction: column; gap: 0.5rem; }
+.boost-save-btn {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 0.75rem;
+}
+.boost-saved-msg {
+  font-size: 0.7rem;
+  color: var(--accent2);
+  text-align: center;
+  margin-top: 0.75rem;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 480px) {
+  .pomo-controls { flex-wrap: wrap; }
+  .boost-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-header">
+  <div class="logo">deep <em>focus</em></div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" data-page="focus">⏱ Focus</button>
+  <button class="nav-btn" data-page="tasks">✓ Tasks</button>
+  <button class="nav-btn" data-page="habits">◈ Habits</button>
+  <button class="nav-btn" data-page="goals">Goals</button>
+  <button class="nav-btn" data-page="boost">Boost</button>
+</nav>
+
+<!-- FOCUS PAGE -->
+<div class="page active" id="page-focus">
+  <div class="card pomo-card">
+    <div class="pomo-tabs">
+      <button class="pomo-tab active"    data-mode="work"  data-mins="25">Pomodoro</button>
+      <button class="pomo-tab short-tab" data-mode="short" data-mins="5">Short Break</button>
+      <button class="pomo-tab long-tab"  data-mode="long"  data-mins="15">Long Break</button>
+    </div>
+    <div class="mug-wrap">
+      <div class="steam" id="pomoSteam">
+        <div class="steam-line"></div>
+        <div class="steam-line"></div>
+        <div class="steam-line"></div>
+      </div>
+      <div class="mug-svg-container">
+        <!-- SVG mug -->
+        <svg viewBox="0 0 240 220" width="240" height="220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="mugClip">
+              <!-- interior of mug body only, below rim -->
+              <rect x="22" y="36" width="156" height="154" rx="8"/>
+            </clipPath>
+            <linearGradient id="coffeeGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#2c1305"/>
+              <stop offset="50%"  stop-color="#6b3318"/>
+              <stop offset="100%" stop-color="#3d1a08"/>
+            </linearGradient>
+            <linearGradient id="foamGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="#d4956a" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#8b4513" stop-opacity="0"/>
+            </linearGradient>
+            <linearGradient id="mugGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="#252528"/>
+              <stop offset="35%"  stop-color="#38383f"/>
+              <stop offset="65%"  stop-color="#38383f"/>
+              <stop offset="100%" stop-color="#1c1c1f"/>
+            </linearGradient>
+            <linearGradient id="shineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stop-color="rgba(255,255,255,0.09)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+          </defs>
+
+          <!-- mug body -->
+          <path d="M22,28 L22,182 Q22,200 40,200 L160,200 Q178,200 178,182 L178,28 Z"
+                fill="url(#mugGrad)" stroke="#4a4a52" stroke-width="1.5"/>
+
+          <!-- coffee fill — y and height set by JS -->
+          <rect id="coffeeFill" x="22" y="36" width="156" height="154"
+                fill="url(#coffeeGrad)" clip-path="url(#mugClip)"/>
+
+          <!-- foam on top of coffee — y set by JS -->
+          <rect id="coffeeFoam" x="22" y="36" width="156" height="14"
+                fill="url(#foamGrad)" clip-path="url(#mugClip)" opacity="0.85"/>
+
+          <!-- wave on coffee surface — d set by JS -->
+          <path id="coffeeWave" d="M22,36 Q78,29 100,36 Q140,43 178,36"
+                fill="none" stroke="rgba(210,150,90,0.45)" stroke-width="2.5"
+                clip-path="url(#mugClip)"/>
+
+          <!-- mug rim (drawn on top) -->
+          <rect x="16" y="20" width="166" height="16" rx="6"
+                fill="#2e2e34" stroke="#555" stroke-width="1"/>
+          <rect x="18" y="21" width="162" height="7" rx="4"
+                fill="rgba(255,255,255,0.07)"/>
+
+          <!-- left shine stripe -->
+          <path d="M36,38 L36,185 Q36,195 44,195 L52,195 L52,38 Z"
+                fill="url(#shineGrad)" opacity="0.55"/>
+
+          <!-- handle: drawn BEFORE body overlay so it looks attached -->
+          <!-- outer dark stroke -->
+          <path d="M178,75 Q228,75 228,118 Q228,160 178,160"
+                fill="none" stroke="#252528" stroke-width="20" stroke-linecap="round"/>
+          <!-- main handle color -->
+          <path d="M178,75 Q224,75 224,118 Q224,160 178,160"
+                fill="none" stroke="#38383f" stroke-width="16" stroke-linecap="round"/>
+          <!-- handle inner highlight -->
+          <path d="M178,80 Q212,80 212,118 Q212,156 178,156"
+                fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="5" stroke-linecap="round"/>
+          <!-- handle inner shadow (hollow look) -->
+          <path d="M178,82 Q206,82 206,118 Q206,154 178,154"
+                fill="none" stroke="#1a1a1e" stroke-width="7" stroke-linecap="round"/>
+
+          <!-- bottom ground shadow -->
+          <ellipse cx="100" cy="203" rx="70" ry="5" fill="rgba(0,0,0,0.35)"/>
+        </svg>
+
+      </div>
+      <div class="mug-time-overlay">
+        <div class="mug-time" id="pomoTime">25:00</div>
+        <div class="mug-label" id="pomoLabel">Focus session</div>
+      </div>
+    </div>
+    <div class="pomo-sessions" id="pomoSessions"></div>
+    <div class="pomo-controls">
+      <button class="btn" id="pomoReset">↺ Reset</button>
+      <button class="btn btn-accent" id="pomoStart" style="padding:0.65rem 2.5rem">Start</button>
+      <button class="btn" id="pomoSkip">Skip →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TASKS PAGE -->
+<div class="page" id="page-tasks">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Tasks <span class="badge" id="taskCount">0</span></div>
+      <button class="btn btn-sm" id="clearDone">Clear done</button>
+    </div>
+    <div class="task-input-wrap">
+      <input class="input" id="taskInput" type="text" placeholder="Add a task and press Enter…" maxlength="120">
+      <button class="btn btn-accent" id="addTaskBtn">+ Add</button>
+    </div>
+    <div class="task-filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="active">Active</button>
+      <button class="filter-btn" data-filter="done">Done</button>
+    </div>
+    <ul class="task-list" id="taskList"></ul>
+    <div class="tasks-footer">
+      <span id="taskProgress">—</span>
+      <span id="taskRemaining">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- HABITS PAGE -->
+<div class="page" id="page-habits">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Habits <span class="badge" id="habitCount">0</span></div>
+      <button class="btn btn-accent" id="openAddHabit">+ New Habit</button>
+    </div>
+    <div class="habits-toolbar">
+      <div class="habits-scroll-nav">
+        <button class="scroll-arrow" id="habitPrev" title="Previous period">‹</button>
+        <span style="font-size:0.7rem;color:var(--muted)" id="habitRangeLabel">Current 30 days</span>
+        <button class="scroll-arrow" id="habitNext" title="Next period">›</button>
+      </div>
+      <div class="range-btns">
+        <button class="range-btn" data-range="7">7 Days</button>
+        <button class="range-btn active" data-range="30">30 Days</button>
+      </div>
+    </div>
+    <div class="habit-list" id="habitList">
+      <div class="empty-state">No habits yet. Add one above ↑</div>
+    </div>
+    <div class="habit-summary">
+      <span id="habitSummaryLeft">—</span>
+      <span id="habitSummaryRight">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Add Habit Modal -->
+<div class="modal-overlay" id="habitModal">
+  <div class="modal">
+    <div class="modal-title">New Habit</div>
+    <div class="modal-row">
+      <div class="modal-label">Name</div>
+      <input class="input" id="habitNameInput" placeholder="e.g. Read 30 minutes" maxlength="60">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Description (optional)</div>
+      <input class="input" id="habitDescInput" placeholder="e.g. Every night before bed" maxlength="80">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Color</div>
+      <div class="color-picker-wrap" id="colorPicker"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelHabit">Cancel</button>
+      <button class="btn btn-accent" id="saveHabit">Add Habit</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOALS PAGE -->
+<div class="page" id="page-goals">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Goals <span class="badge" id="goalCount">0</span></div>
+      <button class="btn btn-accent" id="openAddGoal">+ New Goal</button>
+    </div>
+    <div class="goal-tabs">
+      <button class="goal-tab active" data-gtype="weekly">Weekly</button>
+      <button class="goal-tab" data-gtype="monthly">Monthly</button>
+      <button class="goal-tab" data-gtype="longterm">Long-term</button>
+    </div>
+    <div class="goal-type-desc" id="goalTypeDesc">Finish within this week · resets every Sunday</div>
+    <ul class="task-list" id="goalList"></ul>
+    <div class="tasks-footer">
+      <span id="goalProgress">—</span>
+      <span id="goalRemaining">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-title">New Goal</div>
+    <div class="modal-row">
+      <div class="modal-label">Goal</div>
+      <input class="input" id="goalInput" placeholder="e.g. Run a 5K" maxlength="120">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Notes (optional)</div>
+      <input class="input" id="goalNotes" placeholder="Why this matters…" maxlength="120">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Timeframe</div>
+      <div class="goal-modal-tabs">
+        <button class="goal-modal-tab active" data-gtype="weekly">Weekly</button>
+        <button class="goal-modal-tab" data-gtype="monthly">Monthly</button>
+        <button class="goal-modal-tab" data-gtype="longterm">Long-term</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelGoal">Cancel</button>
+      <button class="btn btn-accent" id="saveGoal">Add Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOOST PAGE -->
+<div class="page" id="page-boost">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Boost</div>
+    </div>
+    <div class="boost-grid" id="boostGrid">
+      <div class="boost-tile" data-boost="focus">
+        <div class="boost-icon">◈</div>
+        <div class="boost-label">Deep Work Intent</div>
+        <div class="boost-sub">Set your #1 signal output today</div>
+      </div>
+      <div class="boost-tile" data-boost="energy">
+        <div class="boost-icon">⬡</div>
+        <div class="boost-label">Cognitive Load</div>
+        <div class="boost-sub">Track mental bandwidth 1–10</div>
+      </div>
+      <div class="boost-tile" data-boost="hypothesis">
+        <div class="boost-icon">◎</div>
+        <div class="boost-label">Daily Hypothesis</div>
+        <div class="boost-sub">What will you test or learn today?</div>
+      </div>
+      <div class="boost-tile" data-boost="wins">
+        <div class="boost-icon">★</div>
+        <div class="boost-label">Experiment Wins</div>
+        <div class="boost-sub">3 things that moved forward today</div>
+      </div>
+      <div class="boost-tile" data-boost="learning">
+        <div class="boost-icon">✦</div>
+        <div class="boost-label">Learning Pulse</div>
+        <div class="boost-sub">What did you absorb today?</div>
+      </div>
+      <div class="boost-tile" data-boost="reflection">
+        <div class="boost-icon">◇</div>
+        <div class="boost-label">Systems Reflection</div>
+        <div class="boost-sub">What would you optimize?</div>
+      </div>
+    </div>
+    <div class="boost-panel" id="boostPanel" style="display:none"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// NAV
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+  });
+});
+
+// POMODORO
+const MODES = {
+  work:  { label:'Focus session', mins:25, color:'var(--accent)'  },
+  short: { label:'Short break',   mins:5,  color:'var(--accent2)' },
+  long:  { label:'Long break',    mins:15, color:'var(--accent3)' },
+};
+let currentMode='work', totalSecs=1500, secsLeft=1500, running=false, interval=null, sessions=0;
+const MAX_SESSIONS=4;
+const pomoTime=document.getElementById('pomoTime');
+const pomoLabel=document.getElementById('pomoLabel');
+const pomoStart=document.getElementById('pomoStart');
+const pomoDots=document.getElementById('pomoSessions');
+const coffeeFill=document.getElementById('coffeeFill');
+const coffeeFoam=document.getElementById('coffeeFoam');
+const coffeeWave=document.getElementById('coffeeWave');
+const pomoSteam=document.getElementById('pomoSteam');
+
+// mug interior: y=36 (top of liquid area) to y=198 (bottom), total height=162
+const MUG_TOP=36, MUG_BOT=198, MUG_H=MUG_BOT-MUG_TOP;
+
+function buildDots(){
+  pomoDots.innerHTML='';
+  for(let i=0;i<MAX_SESSIONS;i++){
+    const d=document.createElement('div');
+    d.className='session-dot'+(i<sessions?' done':'');
+    pomoDots.appendChild(d);
+  }
+}
+buildDots();
+
+function fmt(s){ return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`; }
+
+function updateMug(){
+  const pct = secsLeft / totalSecs;                  // 1=full, 0=empty
+  const fillH = Math.max(2, pct * MUG_H);            // height of coffee
+  const fillY = MUG_BOT - fillH;                     // top edge of coffee rect
+
+  coffeeFill.setAttribute('y', fillY);
+  coffeeFill.setAttribute('height', fillH);
+
+  coffeeFoam.setAttribute('y', fillY - 6);
+
+  const wy = fillY;
+  coffeeWave.setAttribute('d', `M22,${wy} Q78,${wy-8} 100,${wy} Q140,${wy+8} 178,${wy}`);
+
+  document.title = running ? `${fmt(secsLeft)} · deep focus` : 'deep focus';
+}
+
+function setMode(mode){
+  clearInterval(interval); running=false; currentMode=mode;
+  totalSecs=MODES[mode].mins*60; secsLeft=totalSecs;
+  pomoLabel.textContent=MODES[mode].label;
+  pomoStart.textContent='Start'; pomoStart.classList.remove('paused');
+  pomoSteam.classList.remove('visible');
+  document.title='deep focus';
+  pomoTime.textContent=fmt(secsLeft);
+  updateMug();
+}
+
+document.querySelectorAll('.pomo-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.pomo-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active'); setMode(tab.dataset.mode);
+  });
+});
+
+pomoStart.addEventListener('click',()=>{
+  if(running){
+    clearInterval(interval); running=false;
+    pomoStart.textContent='Resume'; pomoStart.classList.add('paused');
+    pomoSteam.classList.remove('visible');
+  } else {
+    running=true; pomoStart.textContent='Pause'; pomoStart.classList.remove('paused');
+    pomoSteam.classList.add('visible');
+    interval=setInterval(()=>{
+      secsLeft--;
+      pomoTime.textContent=fmt(secsLeft);
+      updateMug();
+      if(secsLeft<=0){
+        clearInterval(interval); running=false;
+        pomoSteam.classList.remove('visible');
+        ringBell();
+        if(currentMode==='work'){
+          sessions=Math.min(sessions+1,MAX_SESSIONS); buildDots();
+          showToast('🍅 Pomodoro complete! Take a break.');
+          if(sessions>=MAX_SESSIONS) sessions=0;
+        } else { showToast('⏰ Break over! Back to work.'); }
+        const next=currentMode==='work'?'short':'work';
+        document.querySelectorAll('.pomo-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===next));
+        setMode(next);
+      }
+    },1000);
+  }
+});
+
+document.getElementById('pomoReset').addEventListener('click',()=>setMode(currentMode));
+document.getElementById('pomoSkip').addEventListener('click',()=>{
+  const tabs=['work','short','long'];
+  const next=tabs[(tabs.indexOf(currentMode)+1)%tabs.length];
+  document.querySelectorAll('.pomo-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===next));
+  setMode(next);
+});
+
+function ringBell(){
+  try{
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    const times = [0, 0.18, 0.36, 0.58];
+    notes.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const osc2  = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc.connect(gain);   gain.connect(ctx.destination);
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc.type  = 'sine'; osc.frequency.value  = freq;
+      osc2.type = 'sine'; osc2.frequency.value = freq / 2;
+      const t = ctx.currentTime + times[i];
+      const dur = i === notes.length - 1 ? 1.1 : 0.45;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.32, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      gain2.gain.setValueAtTime(0, t);
+      gain2.gain.linearRampToValueAtTime(0.08, t + 0.01);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.start(t);  osc.stop(t + dur);
+      osc2.start(t); osc2.stop(t + dur);
+    });
+  }catch(e){}
+}
+updateMug();
+
+// TASKS
+let tasks=JSON.parse(localStorage.getItem('deepfocus_tasks')||'[]');
+let taskFilter='all';
+function saveTasks(){ localStorage.setItem('deepfocus_tasks',JSON.stringify(tasks)); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderTasks(){
+  const tl=document.getElementById('taskList');
+  const f=tasks.filter(t=>taskFilter==='active'?!t.done:taskFilter==='done'?t.done:true);
+  tl.innerHTML='';
+  if(!f.length){
+    const li=document.createElement('li'); li.className='empty-state';
+    li.textContent=taskFilter==='done'?'No completed tasks yet.':taskFilter==='active'?'All tasks done! 🎉':'No tasks yet. Add one above ↑';
+    tl.appendChild(li);
+  } else {
+    f.forEach(task=>{
+      const li=document.createElement('li');
+      li.className='task-item'+(task.done?' done':'');
+      li.innerHTML=`<div class="task-check"><svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4L4 7.5L10 1" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="task-text">${esc(task.text)}</span><button class="task-delete">✕</button>`;
+      li.querySelector('.task-check').addEventListener('click',()=>{
+        const t=tasks.find(t=>t.id===task.id); if(t){t.done=!t.done;saveTasks();renderTasks();}
+      });
+      li.querySelector('.task-delete').addEventListener('click',()=>{
+        tasks=tasks.filter(t=>t.id!==task.id); saveTasks(); renderTasks();
+      });
+      tl.appendChild(li);
+    });
+  }
+  const done=tasks.filter(t=>t.done).length, total=tasks.length, active=total-done;
+  document.getElementById('taskCount').textContent=total;
+  const tp=document.getElementById('taskProgress');
+  tp.textContent=total?`${done}/${total} done`:'—';
+  tp.className=done===total&&total>0?'progress-text':'';
+  document.getElementById('taskRemaining').textContent=active>0?`${active} remaining`:total>0?'All done! 🎉':'—';
+}
+
+document.getElementById('addTaskBtn').addEventListener('click',()=>{
+  const i=document.getElementById('taskInput'), t=i.value.trim(); if(!t)return;
+  tasks.unshift({id:Date.now(),text:t,done:false}); saveTasks(); renderTasks(); i.value=''; i.focus();
+});
+document.getElementById('taskInput').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const t=e.target.value.trim(); if(!t)return;
+  tasks.unshift({id:Date.now(),text:t,done:false}); saveTasks(); renderTasks(); e.target.value='';
+});
+document.querySelectorAll('.filter-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); taskFilter=btn.dataset.filter; renderTasks();
+  });
+});
+document.getElementById('clearDone').addEventListener('click',()=>{
+  const c=tasks.filter(t=>t.done).length; if(!c)return;
+  tasks=tasks.filter(t=>!t.done); saveTasks(); renderTasks();
+  showToast(`Cleared ${c} completed task${c>1?'s':''}`);
+});
+renderTasks();
+
+// HABITS
+const HABIT_COLORS=['#a855f7','#f59e0b','#10b981','#6366f1','#ef4444','#06b6d4','#f97316','#ec4899'];
+let habits=JSON.parse(localStorage.getItem('deepfocus_habits')||'[]');
+let habitHistory=JSON.parse(localStorage.getItem('deepfocus_habit_history')||'[]');
+// cycle: { startDate: 'YYYY-MM-DD', endDate: 'YYYY-MM-DD' }
+let habitCycle=JSON.parse(localStorage.getItem('deepfocus_habit_cycle')||'null');
+let habitRange=30;
+let selectedColor=HABIT_COLORS[0];
+
+function saveHabits(){ localStorage.setItem('deepfocus_habits',JSON.stringify(habits)); }
+function saveHistory(){ localStorage.setItem('deepfocus_habit_history',JSON.stringify(habitHistory)); }
+function saveCycle(){ localStorage.setItem('deepfocus_habit_cycle',JSON.stringify(habitCycle)); }
+function today(){ return dKey(new Date()); }
+function dKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function addDays(dateStr, n){
+  const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return dKey(d);
+}
+
+function daysBetween(a, b){
+  const da=new Date(a+'T00:00:00'), db=new Date(b+'T00:00:00');
+  return Math.round((db-da)/(1000*60*60*24));
+}
+
+// Start a new cycle from today if none exists
+function ensureCycle(){
+  if(!habitCycle){
+    const start=today();
+    habitCycle={ startDate:start, endDate:addDays(start,29) };
+    saveCycle();
+  }
+}
+
+// Check if current cycle has ended; if so, archive it and start fresh
+function checkCycleRollover(){
+  ensureCycle();
+  if(today() > habitCycle.endDate){
+    // archive
+    const snapshot={ startDate:habitCycle.startDate, endDate:habitCycle.endDate, habits: habits.map(h=>({
+      name:h.name, color:h.color, desc:h.desc,
+      completedDays: Object.values(h.log||{}).filter(Boolean).length,
+      log: Object.assign({},h.log||{})
+    }))};
+    habitHistory.unshift(snapshot);
+    saveHistory();
+    // reset logs for new cycle
+    habits.forEach(h=>{ h.log={}; });
+    saveHabits();
+    // new cycle
+    const start=today();
+    habitCycle={ startDate:start, endDate:addDays(start,29) };
+    saveCycle();
+    showToast('🎉 New 30-day cycle started! Last cycle saved to History.');
+  }
+}
+
+// Get 30 days starting from today going forward
+function getCycleDays(){
+  ensureCycle();
+  const arr=[];
+  for(let i=0;i<30;i++){
+    const k=addDays(today(),i);
+    arr.push(new Date(k+'T00:00:00'));
+  }
+  return arr;
+}
+
+// For 7-day view: today + next 6 days
+function getLast7(){
+  const arr=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()+i); arr.push(d);
+  }
+  return arr;
+}
+
+function calcStreak(h){
+  let s=0; const d=new Date();
+  while(s<366){
+    if((h.log||{})[dKey(d)]) s++; else break;
+    d.setDate(d.getDate()-1);
+  }
+  return s;
+}
+
+function isCycleLocked(){
+  ensureCycle();
+  return today() > habitCycle.endDate;
+}
+
+function daysLeftInCycle(){
+  ensureCycle();
+  const left = daysBetween(today(), habitCycle.endDate);
+  return Math.max(0, left);
+}
+
+function renderHabits(){
+  checkCycleRollover();
+  const list=document.getElementById('habitList');
+  list.innerHTML='';
+  if(!habits.length){
+    list.innerHTML='<div class="empty-state">No habits yet. Add one above ↑</div>';
+    document.getElementById('habitCount').textContent=0;
+    document.getElementById('habitSummaryLeft').textContent='—';
+    document.getElementById('habitSummaryRight').textContent='—';
+    return;
+  }
+  document.getElementById('habitCount').textContent=habits.length;
+  const days = getOffsetDays();
+  const todayKey=today();
+  const locked=isCycleLocked();
+  const chunkSize=habitRange<=7?7:10;
+
+  // toolbar label
+  const firstDay = days[0], lastDay = days[days.length-1];
+  const fmtShort = d => `${d.toLocaleString('default',{month:'short'})} ${d.getDate()}`;
+  document.getElementById('habitRangeLabel').textContent = `${fmtShort(firstDay)} – ${fmtShort(lastDay)}`;
+  // disable next arrow if period includes today or future
+  const nextBtn = document.getElementById('habitNext');
+  const prevBtn = document.getElementById('habitPrev');
+  nextBtn.disabled = habitOffset >= 0;
+  // only allow going back if we're in current period or there's a previous cycle archived
+  const earliestOffset = habitHistory.length > 0 ? -(habitHistory.length) : 0;
+  prevBtn.disabled = habitOffset <= earliestOffset;
+
+  habits.forEach((habit,idx)=>{
+    const streak=calcStreak(habit);
+    const item=document.createElement('div');
+    item.className='habit-item';
+
+    const chunks=[];
+    for(let i=0;i<days.length;i+=chunkSize) chunks.push(days.slice(i,i+chunkSize));
+
+    let gridHtml='';
+    chunks.forEach((chunk,ri)=>{
+      const isFirstChunk = ri===0;
+      const label = isFirstChunk
+        ? `<div class="habit-day-label" style="color:var(--accent);font-size:0.56rem">now</div>`
+        : `<div class="habit-day-label"></div>`;
+      const cells=chunk.map(d=>{
+        const k=dKey(d);
+        const checked=(habit.log||{})[k];
+        const isToday=k===todayKey;
+        const isFuture=k>todayKey;
+        const isClickable=!locked && !isFuture;
+        return `<div class="habit-cell${checked?' checked':''}${isToday?' today':''}"
+          data-hidx="${idx}" data-date="${k}"
+          style="${checked?'background:'+habit.color+';border-color:'+habit.color+';':''} ${isFuture?'opacity:0.22;cursor:default;':''}"
+          ${isClickable?'':'data-noop="1"'}>
+          ${checked
+            ? `<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 3.5L3.5 6.5L9 1" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+            : `<span class="day-num">${d.getDate()}</span>`
+          }
+        </div>`;
+      }).join('');
+      gridHtml+=`<div class="habit-grid-row">${label}<div class="grid-days">${cells}</div></div>`;
+    });
+
+    item.innerHTML=`
+      <div class="habit-row">
+        <div class="habit-color-bar" style="background:${habit.color}"></div>
+        <span class="habit-name" style="color:${habit.color}">${esc(habit.name)}</span>
+        <span class="habit-streak">🔥 ${streak} day${streak!==1?'s':''}</span>
+        ${locked ? '' : `<button class="habit-del" data-idx="${idx}">✕</button>`}
+      </div>
+      ${habit.desc?`<div class="habit-desc">${esc(habit.desc)}</div>`:''}
+      <div class="habit-grid-wrap"><div class="habit-grid">${gridHtml}</div></div>`;
+
+    item.querySelectorAll('.habit-cell').forEach(cell=>{
+      if(cell.dataset.noop) return;
+      cell.addEventListener('click',()=>{
+        const hi=parseInt(cell.dataset.hidx), dt=cell.dataset.date;
+        if(!habits[hi].log) habits[hi].log={};
+        habits[hi].log[dt]=!habits[hi].log[dt];
+        saveHabits(); renderHabits();
+      });
+    });
+
+    if(!locked){
+      const delBtn=item.querySelector('.habit-del');
+      if(delBtn) delBtn.addEventListener('click',()=>{
+        habits.splice(parseInt(delBtn.dataset.idx),1);
+        saveHabits(); renderHabits(); showToast('Habit removed');
+      });
+    }
+
+    list.appendChild(item);
+  });
+
+  const todayDone=habits.filter(h=>(h.log||{})[todayKey]).length;
+  document.getElementById('habitSummaryLeft').textContent=`${todayDone}/${habits.length} done today`;
+  const avgS=habits.length?Math.round(habits.reduce((s,h)=>s+calcStreak(h),0)/habits.length):0;
+  document.getElementById('habitSummaryRight').textContent=`avg streak: ${avgS} day${avgS!==1?'s':''}`;
+}
+
+// HABIT SCROLL OFFSET (in units of habitRange days)
+let habitOffset = 0; // 0 = current period, -1 = previous, +1 = next
+
+function getOffsetDays(){
+  const n = habitRange;
+  const arr = [];
+  const baseStart = habitRange <= 7
+    ? (() => { const d=new Date(); d.setDate(d.getDate() - 6 + habitOffset*7); return d; })()
+    : (() => { const d=new Date(habitCycle.startDate+'T00:00:00'); d.setDate(d.getDate() + habitOffset*30); return d; })();
+  for(let i=0;i<n;i++){
+    const d=new Date(baseStart); d.setDate(d.getDate()+i); arr.push(d);
+  }
+  return arr;
+}
+
+document.getElementById('habitPrev').addEventListener('click',()=>{
+  habitOffset--; renderHabits();
+});
+document.getElementById('habitNext').addEventListener('click',()=>{
+  if(habitOffset < 1){ habitOffset++; renderHabits(); }
+});
+
+// ─── GOALS ───────────────────────────────────────────────
+const GOAL_DESCS = {
+  weekly:   'Finish within this week · resets every Sunday',
+  monthly:  'Finish within this month · resets on the 1st',
+  longterm: 'No deadline · big picture ambitions',
+};
+let goals = JSON.parse(localStorage.getItem('deepfocus_goals')||'[]');
+let goalType = 'weekly';
+let goalModalType = 'weekly';
+function saveGoals(){ localStorage.setItem('deepfocus_goals', JSON.stringify(goals)); }
+
+function renderGoals(){
+  const list = document.getElementById('goalList');
+  list.innerHTML = '';
+  const filtered = goals.filter(g => g.type === goalType);
+  document.getElementById('goalTypeDesc').textContent = GOAL_DESCS[goalType];
+  const done = filtered.filter(g=>g.done).length;
+  const total = filtered.length;
+  document.getElementById('goalCount').textContent = goals.length;
+  document.getElementById('goalProgress').textContent = total ? `${done}/${total} done` : '—';
+  document.getElementById('goalProgress').className = done===total&&total>0?'progress-text':'';
+  document.getElementById('goalRemaining').textContent = total-done > 0 ? `${total-done} remaining` : total>0 ? 'All done! 🎉' : '—';
+
+  if(!filtered.length){
+    const li=document.createElement('li'); li.className='empty-state';
+    li.textContent='No '+goalType+' goals yet. Add one above ↑';
+    list.appendChild(li); return;
+  }
+  filtered.forEach(goal=>{
+    const li=document.createElement('li');
+    li.className='goal-item'+(goal.done?' done':'');
+    li.innerHTML=`
+      <div class="goal-check">
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+          <path d="M1 4L4 7.5L10 1" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="goal-body">
+        <div class="goal-text">${esc(goal.text)}</div>
+        ${goal.notes?`<div class="goal-notes">${esc(goal.notes)}</div>`:''}
+      </div>
+      <button class="goal-delete">✕</button>`;
+    li.querySelector('.goal-check').addEventListener('click',()=>{
+      const g=goals.find(g=>g.id===goal.id); if(g){g.done=!g.done; saveGoals(); renderGoals();}
+    });
+    li.querySelector('.goal-delete').addEventListener('click',()=>{
+      goals=goals.filter(g=>g.id!==goal.id); saveGoals(); renderGoals();
+    });
+    list.appendChild(li);
+  });
+}
+
+document.querySelectorAll('.goal-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.goal-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); goalType=btn.dataset.gtype; renderGoals();
+  });
+});
+
+document.getElementById('openAddGoal').addEventListener('click',()=>{
+  document.getElementById('goalInput').value='';
+  document.getElementById('goalNotes').value='';
+  goalModalType='weekly';
+  document.querySelectorAll('.goal-modal-tab').forEach(b=>b.classList.toggle('active',b.dataset.gtype==='weekly'));
+  document.getElementById('goalModal').classList.add('show');
+  setTimeout(()=>document.getElementById('goalInput').focus(),80);
+});
+
+document.querySelectorAll('.goal-modal-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.goal-modal-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); goalModalType=btn.dataset.gtype;
+  });
+});
+
+document.getElementById('cancelGoal').addEventListener('click',()=>document.getElementById('goalModal').classList.remove('show'));
+document.getElementById('goalModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('goalModal')) document.getElementById('goalModal').classList.remove('show');
+});
+document.getElementById('saveGoal').addEventListener('click',()=>{
+  const text=document.getElementById('goalInput').value.trim();
+  if(!text){showToast('Please enter a goal');return;}
+  goals.push({id:Date.now(),text,notes:document.getElementById('goalNotes').value.trim(),type:goalModalType,done:false});
+  saveGoals();
+  goalType=goalModalType;
+  document.querySelectorAll('.goal-tab').forEach(b=>b.classList.toggle('active',b.dataset.gtype===goalModalType));
+  renderGoals();
+  document.getElementById('goalModal').classList.remove('show');
+  showToast('Goal added!');
+});
+document.getElementById('goalInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter') document.getElementById('saveGoal').click();
+});
+
+renderGoals();
+
+// ─── BOOST ───────────────────────────────────────────────
+const QUOTES = [
+  {text:"The good thing about science is that it's true whether or not you believe in it.",author:"Neil deGrasse Tyson"},
+  {text:"Research is to see what everybody else has seen, and to think what nobody else has thought.",author:"Albert Szent-Györgyi"},
+  {text:"The important thing is not to stop questioning. Curiosity has its own reason for existing.",author:"Albert Einstein"},
+  {text:"Science is a way of thinking much more than it is a body of knowledge.",author:"Carl Sagan"},
+  {text:"An expert is a person who has made all the mistakes that can be made in a very narrow field.",author:"Niels Bohr"},
+  {text:"Biology is the study of complicated things that have the appearance of having been designed with a purpose.",author:"Richard Dawkins"},
+  {text:"The art of research is to find problems where others see solutions.",author:"Unknown"},
+  {text:"If you're not failing, you're not pushing hard enough. Failure is data.",author:"Unknown"},
+  {text:"Somewhere, something incredible is waiting to be known.",author:"Carl Sagan"},
+  {text:"Every experiment, even a failed one, teaches you something no paper can.",author:"Unknown"},
+  {text:"Engineering is the closest thing to magic that exists in the world.",author:"Elon Musk"},
+  {text:"The capacity to learn is a gift. The willingness to learn is a choice.",author:"Brian Herbert"},
+];
+
+let boostData = JSON.parse(localStorage.getItem('deepfocus_boost_'+today())||'{}');
+function saveBoost(){ localStorage.setItem('deepfocus_boost_'+today(), JSON.stringify(boostData)); }
+
+let activeBoost = null;
+
+function openBoostPanel(type){
+  activeBoost = type;
+  document.querySelectorAll('.boost-tile').forEach(t=>t.classList.toggle('active',t.dataset.boost===type));
+  const panel = document.getElementById('boostPanel');
+  panel.style.display='block';
+  panel.innerHTML = renderBoostPanel(type);
+  attachBoostEvents(type);
+}
+
+function renderBoostPanel(type){
+  const todayQ = QUOTES[new Date().getDate() % QUOTES.length];
+
+  if(type==='focus'){
+    const f=boostData.focus||'';
+    return `<div class="boost-panel-title">Deep Work Intent</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">Based on Newport's deep work framework — one clear signal output per session reduces context-switching and compounds output over time.</p>
+      <input class="input" id="focusInput" placeholder="e.g. Finish literature review on CRISPR delivery mechanisms" value="${esc(f)}" style="margin-bottom:0.75rem">
+      <button class="btn btn-accent boost-save-btn" id="saveFocus">Set Intent</button>
+      ${f?`<div class="boost-saved-msg">Intent set ✓ — ${esc(f)}</div>`:''}`;
+  }
+
+  if(type==='energy'){
+    const e=boostData.energy||5;
+    const label = e<=3?'Low — protect your schedule':e<=6?'Moderate — good for focused tasks':e<=8?'High — tackle hard problems':'Peak — schedule your hardest thinking now';
+    return `<div class="boost-panel-title">Cognitive Load Tracker</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">Research shows peak cognitive performance lasts ~4 hrs/day. Track this to find your personal rhythm and protect your best hours.</p>
+      <div class="energy-val" id="energyVal">${e}</div>
+      <div style="font-size:0.65rem;color:var(--muted);text-align:center;margin-bottom:0.5rem" id="energyLabel">${label}</div>
+      <input type="range" class="energy-slider" id="energySlider" min="1" max="10" value="${e}">
+      <button class="btn btn-accent boost-save-btn" id="saveEnergy">Log</button>
+      ${boostData.energySaved?`<div class="boost-saved-msg">Logged ✓</div>`:''}`;
+  }
+
+  if(type==='hypothesis'){
+    const h=boostData.hypothesis||'';
+    const obs=boostData.observation||'';
+    return `<div class="boost-panel-title">Daily Hypothesis</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">Treat each day like an experiment. Write a hypothesis in the morning, log your observation at night. Over time this builds an intuition log only a scientist would have.</p>
+      <div class="modal-label" style="margin-bottom:0.35rem">Hypothesis (morning)</div>
+      <input class="input" id="hypothesisInput" placeholder="e.g. If I batch my emails to 2x/day, I'll have 2 more deep work blocks" value="${esc(h)}" style="margin-bottom:0.6rem">
+      <div class="modal-label" style="margin-bottom:0.35rem">Observation (evening)</div>
+      <input class="input" id="observationInput" placeholder="What actually happened?" value="${esc(obs)}" style="margin-bottom:0.75rem">
+      <button class="btn btn-accent boost-save-btn" id="saveHypothesis">Save</button>
+      ${h?`<div class="boost-saved-msg">Saved ✓</div>`:''}`;
+  }
+
+  if(type==='wins'){
+    const w=boostData.wins||['','',''];
+    return `<div class="boost-panel-title">Experiment Wins</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">In research, progress is rarely linear. Logging incremental wins — even null results — reinforces the compounding effect of daily effort.</p>
+      <div class="win-inputs">
+        <input class="input" id="win1" placeholder="e.g. Finally understood the paper on scaffold vascularization" value="${esc(w[0]||'')}">
+        <input class="input" id="win2" placeholder="e.g. Wrote 400 words of methods section" value="${esc(w[1]||'')}">
+        <input class="input" id="win3" placeholder="e.g. Solved the off-by-one in my Python pipeline" value="${esc(w[2]||'')}">
+      </div>
+      <button class="btn btn-accent boost-save-btn" id="saveWins">Save</button>
+      ${w.some(x=>x)?'<div class="boost-saved-msg">Saved ✓</div>':''}`;
+  }
+
+  if(type==='learning'){
+    const l=boostData.learning||'';
+    const src=boostData.learningSource||'';
+    return `<div class="boost-panel-title">Learning Pulse</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">The Feynman technique: if you can't write it simply, you don't understand it yet. One sentence forces clarity. This log becomes your personal knowledge base.</p>
+      <div class="modal-label" style="margin-bottom:0.35rem">What did you learn today?</div>
+      <input class="input" id="learningInput" placeholder="e.g. Lentiviral vectors integrate stably but carry insertional mutagenesis risk" value="${esc(l)}" style="margin-bottom:0.6rem">
+      <div class="modal-label" style="margin-bottom:0.35rem">Source</div>
+      <input class="input" id="learningSource" placeholder="e.g. Paper, lecture, conversation, experiment…" value="${esc(src)}" style="margin-bottom:0.75rem">
+      <button class="btn btn-accent boost-save-btn" id="saveLearning">Save</button>
+      ${l?`<div class="boost-saved-msg">Saved ✓</div>`:''}`;
+  }
+
+  if(type==='reflection'){
+    const r=boostData.reflection||'';
+    return `<div class="boost-panel-title">Systems Reflection</div>
+      <p style="font-size:0.7rem;color:var(--muted);margin-bottom:0.75rem;line-height:1.6">Engineers debug systems. Your workflow is a system. One weekly prompt: what's the rate-limiting step in your current process, and what would you redesign?</p>
+      <input class="input" id="reflectionInput" placeholder="e.g. My literature review is bottlenecked by poor tagging in Zotero — need a better taxonomy" value="${esc(r)}" style="margin-bottom:0.75rem">
+      <button class="btn btn-accent boost-save-btn" id="saveReflection">Save</button>
+      ${r?`<div class="boost-saved-msg">Saved ✓</div>`:''}`;
+  }
+  return '';
+}
+
+function attachBoostEvents(type){
+  if(type==='focus'){
+    document.getElementById('saveFocus').addEventListener('click',()=>{
+      boostData.focus=document.getElementById('focusInput').value.trim();
+      saveBoost(); showToast('Intent set!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('focus'); attachBoostEvents('focus');
+    });
+    document.getElementById('focusInput').addEventListener('keydown',e=>{if(e.key==='Enter') document.getElementById('saveFocus').click();});
+  }
+  if(type==='energy'){
+    const slider=document.getElementById('energySlider');
+    const labels=['','Low — protect your schedule','Low — protect your schedule','Low — protect your schedule','Moderate — good for focused tasks','Moderate — good for focused tasks','Moderate — good for focused tasks','High — tackle hard problems','High — tackle hard problems','Peak — schedule your hardest thinking now','Peak — schedule your hardest thinking now'];
+    slider.addEventListener('input',e=>{
+      document.getElementById('energyVal').textContent=e.target.value;
+      document.getElementById('energyLabel').textContent=labels[parseInt(e.target.value)]||'';
+    });
+    document.getElementById('saveEnergy').addEventListener('click',()=>{
+      boostData.energy=parseInt(slider.value); boostData.energySaved=true;
+      saveBoost(); showToast('Logged!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('energy'); attachBoostEvents('energy');
+    });
+  }
+  if(type==='hypothesis'){
+    document.getElementById('saveHypothesis').addEventListener('click',()=>{
+      boostData.hypothesis=document.getElementById('hypothesisInput').value.trim();
+      boostData.observation=document.getElementById('observationInput').value.trim();
+      saveBoost(); showToast('Saved!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('hypothesis'); attachBoostEvents('hypothesis');
+    });
+  }
+  if(type==='wins'){
+    document.getElementById('saveWins').addEventListener('click',()=>{
+      boostData.wins=[document.getElementById('win1').value,document.getElementById('win2').value,document.getElementById('win3').value];
+      saveBoost(); showToast('Wins saved!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('wins'); attachBoostEvents('wins');
+    });
+  }
+  if(type==='learning'){
+    document.getElementById('saveLearning').addEventListener('click',()=>{
+      boostData.learning=document.getElementById('learningInput').value.trim();
+      boostData.learningSource=document.getElementById('learningSource').value.trim();
+      saveBoost(); showToast('Saved!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('learning'); attachBoostEvents('learning');
+    });
+  }
+  if(type==='reflection'){
+    document.getElementById('saveReflection').addEventListener('click',()=>{
+      boostData.reflection=document.getElementById('reflectionInput').value.trim();
+      saveBoost(); showToast('Saved!');
+      document.getElementById('boostPanel').innerHTML=renderBoostPanel('reflection'); attachBoostEvents('reflection');
+    });
+  }
+}
+
+document.querySelectorAll('.boost-tile').forEach(tile=>{
+  tile.addEventListener('click',()=>{
+    const type=tile.dataset.boost;
+    if(activeBoost===type){
+      activeBoost=null;
+      document.getElementById('boostPanel').style.display='none';
+      document.querySelectorAll('.boost-tile').forEach(t=>t.classList.remove('active'));
+    } else { openBoostPanel(type); }
+  });
+});
+
+ensureCycle();
+renderHabits();
+
+// TOAST
+let toastTimer;
+const toastEl=document.getElementById('toast');
+function showToast(msg){
+  toastEl.textContent=msg; toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.classList.remove('show'),3500);
+}
+</script>
+</body>
+</html>
